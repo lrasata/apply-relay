@@ -3,3 +3,5 @@ boto3>=1.35
 moto[dynamodb,sns,sqs]>=5.0
 pytest>=8.0
 jsonschema[format]>=4.23
+# For the contract test that jobs.json only uses skills the CV parser can produce.
+-r ../cv_parser/requirements.txt

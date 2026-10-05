@@ -99,7 +99,7 @@ Python 3.12 · AWS Lambda · API Gateway · SNS · SQS · DynamoDB · S3 · SES 
 - [x] 3. Application service
 - [x] 4. CV parser service
 - [x] 5. Matching service
-- [ ] 6. CI/CD with GitHub Actions
+- [x] 6. CI/CD with GitHub Actions
 - [ ] 7. Notification and audit services, tracing and alarms
 
 ## Project layout
@@ -109,5 +109,7 @@ Python 3.12 · AWS Lambda · API Gateway · SNS · SQS · DynamoDB · S3 · SES 
 │   ├── events/        # JSON Schemas: the contracts between services
 │   └── decisions/     # architecture decision records
 ├── services/          # one folder per microservice (code, tests, own README)
-└── infra/             # Terraform
+├── scripts/           # build_lambda.py: packages a service with its dependencies
+├── infra/             # Terraform
+└── .github/workflows/ # CI on pull requests, deploy on main
 ```

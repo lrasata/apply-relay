@@ -5,6 +5,7 @@ All AWS resources are defined in Terraform (>= 1.10, AWS provider 5.x).
 ```
 infra/
 ├── bootstrap/            # one-time: S3 bucket for Terraform state
+├── ci/                   # one-time: GitHub OIDC provider and the CI roles
 ├── envs/dev/             # the dev environment (wires the modules together)
 └── modules/
     ├── event_topic/      # one SNS topic per event type
@@ -98,6 +99,48 @@ terraform apply -var-file=dev.tfvars
 ```
 
 **4. Confirm the alert email.** AWS sends a "Subscription Confirmation" email to `alert_email`; click the link once, or alarms won't reach you.
+
+## CI/CD with GitHub Actions
+
+| Workflow | When | What |
+|---|---|---|
+| [`ci.yml`](../.github/workflows/ci.yml) | every pull request | tests for each service (Python 3.12), `terraform fmt` and `validate` for all three stacks, then a `terraform plan` for dev shown in the run summary |
+| [`deploy.yml`](../.github/workflows/deploy.yml) | push to `main` | the same CI, then build, plan and apply to dev in the GitHub environment `dev` |
+
+There are no AWS keys in GitHub. Jobs exchange GitHub's OIDC token for 1-hour credentials, and [`ci/`](ci/) defines who can get which:
+
+| Role | Who can assume it | Can do |
+|---|---|---|
+| `jae-github-plan` | pull requests and `main` of your repo | read-only (`ReadOnlyAccess`), minus CVs and application data; read/write the state lock |
+| `jae-github-deploy` | only jobs running in the GitHub environment `dev` | create and change `jae-*` resources only; cannot touch the CI roles or delete the state bucket |
+
+Every Lambda role CI creates must carry the `jae-lambda-boundary` permissions boundary, so even a malicious change to a service's IAM policy in a pull request can't grant more than the services need.
+
+Until the repository variables below exist, the AWS jobs are skipped and CI just runs the tests and checks.
+
+**Set it up (once, after "Deploy it yourself" above):**
+
+```bash
+cd infra/ci
+cp example.tfvars ci.tfvars                       # put your owner/repo in it
+terraform init -backend-config=../envs/dev/backend.hcl
+terraform apply -var-file=ci.tfvars               # 7 resources
+```
+
+If your account already has a GitHub OIDC provider, add `create_oidc_provider = false` to `ci.tfvars`.
+
+Then in GitHub, under *Settings → Secrets and variables → Actions → Variables*, add:
+
+| Variable | Value |
+|---|---|
+| `AWS_PLAN_ROLE_ARN` | `terraform output -raw plan_role_arn` |
+| `AWS_DEPLOY_ROLE_ARN` | `terraform output -raw deploy_role_arn` |
+| `LAMBDA_PERMISSIONS_BOUNDARY_ARN` | `terraform output -raw lambda_permissions_boundary_arn` |
+| `TF_STATE_BUCKET` | the bucket from `infra/bootstrap` |
+| `ALERT_EMAIL` | your email |
+| `AWS_REGION` | optional, defaults to `eu-central-1` |
+
+Finally create the environment `dev` under *Settings → Environments*. Adding yourself as a required reviewer there makes every deploy wait for your approval.
 
 ## Try the fan-out without any code
 

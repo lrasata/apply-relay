@@ -120,8 +120,9 @@ data "aws_iam_policy_document" "lambda_assume" {
 }
 
 resource "aws_iam_role" "application" {
-  name               = local.application_service
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  name                 = local.application_service
+  assume_role_policy   = data.aws_iam_policy_document.lambda_assume.json
+  permissions_boundary = var.lambda_permissions_boundary
 }
 
 data "aws_iam_policy_document" "application" {

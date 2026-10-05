@@ -76,8 +76,9 @@ resource "aws_lambda_event_source_mapping" "cv_parser" {
 # ---------------------------------------------------------------- permissions (least privilege)
 
 resource "aws_iam_role" "cv_parser" {
-  name               = local.cv_parser_service
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  name                 = local.cv_parser_service
+  assume_role_policy   = data.aws_iam_policy_document.lambda_assume.json
+  permissions_boundary = var.lambda_permissions_boundary
 }
 
 data "aws_iam_policy_document" "cv_parser" {

@@ -48,3 +48,9 @@ variable "api_burst_limit" {
   type        = number
   default     = 10
 }
+
+variable "lambda_permissions_boundary" {
+  description = "ARN of the permissions boundary for Lambda roles. Set in CI (from infra/ci); leave null for local applies."
+  type        = string
+  default     = null
+}

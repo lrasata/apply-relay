@@ -65,7 +65,7 @@ No AWS account or credentials are needed: every AWS call goes to [moto](https://
 ```bash
 API=$(terraform -chdir=infra/envs/dev output -raw api_url)
 CV=$(base64 -w0 my-cv.pdf)
-curl -s -X POST "$API/applications" -H "Content-Type: application/json" \
+curl -s -X POST "${API%/}/applications" -H "Content-Type: application/json" \
   -d "{\"full_name\":\"Alex Example\",\"email\":\"alex@example.com\",\"job_id\":\"job_1\",\"cv\":{\"content_type\":\"application/pdf\",\"content_base64\":\"$CV\"}}"
 ```
 

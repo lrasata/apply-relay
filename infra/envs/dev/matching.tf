@@ -109,8 +109,9 @@ resource "aws_lambda_event_source_mapping" "matching" {
 # ---------------------------------------------------------------- permissions (least privilege)
 
 resource "aws_iam_role" "matching" {
-  name               = local.matching_service
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  name                 = local.matching_service
+  assume_role_policy   = data.aws_iam_policy_document.lambda_assume.json
+  permissions_boundary = var.lambda_permissions_boundary
 }
 
 data "aws_iam_policy_document" "matching" {
