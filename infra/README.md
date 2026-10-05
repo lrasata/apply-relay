@@ -35,7 +35,18 @@ consumers = {
 
 Adding a consumer, or subscribing one to another event, is a one-line change.
 
-**Expected cost:** effectively $0 while idle. SNS and SQS are free up to 1M requests a month, the first 10 CloudWatch alarms and the first 2 budgets are free, and the state bucket holds a few KB.
+## What step 3 adds (14 resources)
+
+| | Resources |
+|---|---|
+| Public API | `jae-dev-api` HTTP API with one route, `POST /applications`, throttled to 5 requests/s (burst 10) |
+| Function | `jae-dev-application` Lambda (Python 3.12, arm64), X-Ray tracing, logs kept 14 days |
+| Data | `jae-dev-applications` DynamoDB table (on-demand) and `jae-dev-cvs-<account-id>` S3 bucket (private, encrypted, CVs deleted after 30 days) |
+| Permissions | one IAM role that can only write its own table, put CVs, and publish to `application-submitted` |
+
+Terraform zips `services/application/src` itself (via the `archive` provider), so there is no separate build step.
+
+**Expected cost:** effectively $0 while idle. SNS, SQS, Lambda and DynamoDB on-demand are within the free tier at portfolio traffic, API Gateway HTTP APIs cost about $1 per million requests, the first 10 CloudWatch alarms and the first 2 budgets are free, and the state bucket holds a few KB.
 
 ## Deploy it yourself
 
@@ -61,7 +72,7 @@ cp example.tfvars dev.tfvars           # put your email in it
 
 ```bash
 terraform init -backend-config=backend.hcl
-terraform plan -var-file=dev.tfvars    # should say: Plan: 32 to add
+terraform plan -var-file=dev.tfvars    # should say: Plan: 46 to add
 terraform apply -var-file=dev.tfvars
 ```
 

@@ -16,3 +16,16 @@ output "dead_letter_queue_urls" {
 output "ops_alerts_topic_arn" {
   value = aws_sns_topic.ops_alerts.arn
 }
+
+output "api_url" {
+  description = "Base URL of the public API. Submit with POST <api_url>/applications."
+  value       = aws_apigatewayv2_stage.default.invoke_url
+}
+
+output "applications_table" {
+  value = aws_dynamodb_table.applications.name
+}
+
+output "cvs_bucket" {
+  value = aws_s3_bucket.cvs.bucket
+}

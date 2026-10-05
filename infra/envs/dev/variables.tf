@@ -30,3 +30,21 @@ variable "monthly_budget_usd" {
   type        = number
   default     = 5
 }
+
+variable "cv_retention_days" {
+  description = "Days before uploaded CVs are deleted from S3 (they are personal data)."
+  type        = number
+  default     = 30
+}
+
+variable "api_rate_limit" {
+  description = "Steady-state requests per second allowed on the public API."
+  type        = number
+  default     = 5
+}
+
+variable "api_burst_limit" {
+  description = "Short burst of requests allowed on the public API."
+  type        = number
+  default     = 10
+}

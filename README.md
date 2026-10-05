@@ -96,7 +96,7 @@ Python 3.12 · AWS Lambda · API Gateway · SNS · SQS · DynamoDB · S3 · SES 
 
 - [x] 1. Repo skeleton, event contracts, architecture
 - [x] 2. Shared infrastructure in Terraform (topics, queues, DLQs, budget alarm)
-- [ ] 3. Application service
+- [x] 3. Application service
 - [ ] 4. CV parser service
 - [ ] 5. Matching service
 - [ ] 6. CI/CD with GitHub Actions

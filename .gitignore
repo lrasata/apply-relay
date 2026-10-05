@@ -17,3 +17,6 @@ dist/
 *.zip
 .env
 backend.hcl
+
+# Lambda zips built by Terraform
+infra/envs/*/build/
