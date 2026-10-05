@@ -1,0 +1,26 @@
+[
+  {
+    "job_id": "job_devops_munich_042",
+    "title": "DevOps Engineer (AWS)",
+    "location": "Munich",
+    "recruiter_email": "recruiting@example.com",
+    "required_skills": ["aws", "terraform", "python", "docker", "kubernetes"],
+    "nice_to_have_skills": ["github actions", "aws lambda", "prometheus"]
+  },
+  {
+    "job_id": "job_backend_berlin_017",
+    "title": "Backend Engineer (Python, event-driven)",
+    "location": "Berlin",
+    "recruiter_email": "recruiting@example.com",
+    "required_skills": ["python", "sql", "aws", "microservices"],
+    "nice_to_have_skills": ["kafka", "event-driven architecture", "dynamodb", "docker"]
+  },
+  {
+    "job_id": "job_frontend_remote_008",
+    "title": "Frontend Engineer (React)",
+    "location": "Remote",
+    "recruiter_email": "recruiting@example.com",
+    "required_skills": ["javascript", "typescript", "react"],
+    "nice_to_have_skills": ["node.js", "aws", "ci/cd"]
+  }
+]

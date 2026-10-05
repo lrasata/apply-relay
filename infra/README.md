@@ -56,6 +56,16 @@ Terraform zips `services/application/src` itself (via the `archive` provider), s
 
 This function bundles `pypdf`, so its package is built first with `python scripts/build_lambda.py cv_parser` (see "Deploy it yourself").
 
+## What step 5 adds (10 resources)
+
+| | Resources |
+|---|---|
+| Function | `jae-dev-matching` Lambda (Python 3.12, arm64), triggered by the `jae-dev-matching` queue in batches of 10, at most 2 running at once |
+| Data | `jae-dev-matches` table, and `jae-dev-jobs` table seeded with the 3 jobs in [`services/matching/jobs.json`](../services/matching/jobs.json) |
+| Permissions | one IAM role that can read its queue and the jobs, write its own matches, and publish to `candidate-matched` |
+
+To add or change a job, edit `jobs.json` and apply; Terraform updates the table items.
+
 **Expected cost:** effectively $0 while idle. SNS, SQS, Lambda and DynamoDB on-demand are within the free tier at portfolio traffic, API Gateway HTTP APIs cost about $1 per million requests, the first 10 CloudWatch alarms and the first 2 budgets are free, and the state bucket holds a few KB.
 
 ## Deploy it yourself
@@ -83,7 +93,7 @@ cp example.tfvars dev.tfvars           # put your email in it
 ```bash
 python ../../../scripts/build_lambda.py cv_parser   # bundles pypdf for the CV parser
 terraform init -backend-config=backend.hcl
-terraform plan -var-file=dev.tfvars    # should say: Plan: 52 to add
+terraform plan -var-file=dev.tfvars    # should say: Plan: 62 to add
 terraform apply -var-file=dev.tfvars
 ```
 
