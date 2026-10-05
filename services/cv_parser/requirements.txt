@@ -1,0 +1,2 @@
+# Runtime dependencies, bundled into the Lambda zip by scripts/build_lambda.py.
+pypdf>=5.0,<7

@@ -46,6 +46,16 @@ Adding a consumer, or subscribing one to another event, is a one-line change.
 
 Terraform zips `services/application/src` itself (via the `archive` provider), so there is no separate build step.
 
+## What step 4 adds (6 resources)
+
+| | Resources |
+|---|---|
+| Function | `jae-dev-cv-parser` Lambda (Python 3.12, arm64, 512 MB), triggered by the `jae-dev-cv-parser` queue in batches of 10, at most 2 running at once |
+| Data | `jae-dev-parsed-cvs` DynamoDB table (on-demand) |
+| Permissions | one IAM role that can read its queue and CVs, write its own table, and publish to `cv-parsed` |
+
+This function bundles `pypdf`, so its package is built first with `python scripts/build_lambda.py cv_parser` (see "Deploy it yourself").
+
 **Expected cost:** effectively $0 while idle. SNS, SQS, Lambda and DynamoDB on-demand are within the free tier at portfolio traffic, API Gateway HTTP APIs cost about $1 per million requests, the first 10 CloudWatch alarms and the first 2 budgets are free, and the state bucket holds a few KB.
 
 ## Deploy it yourself
@@ -68,11 +78,12 @@ cp backend.hcl.example backend.hcl     # put the bucket name from step 1 in it
 cp example.tfvars dev.tfvars           # put your email in it
 ```
 
-**3. Plan, check, apply.**
+**3. Build, plan, check, apply.**
 
 ```bash
+python ../../../scripts/build_lambda.py cv_parser   # bundles pypdf for the CV parser
 terraform init -backend-config=backend.hcl
-terraform plan -var-file=dev.tfvars    # should say: Plan: 46 to add
+terraform plan -var-file=dev.tfvars    # should say: Plan: 52 to add
 terraform apply -var-file=dev.tfvars
 ```
 
