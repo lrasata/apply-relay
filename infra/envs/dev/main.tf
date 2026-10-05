@@ -15,6 +15,11 @@ locals {
     notification = ["candidate-matched"]
     audit        = ["application-submitted", "cv-parsed", "candidate-matched"]
   }
+
+  # Only strong matches reach the notification queue; SNS drops the rest for free.
+  consumer_filters = {
+    notification = { candidate-matched = jsonencode({ recommendation = ["strong_match"] }) }
+  }
 }
 
 # ---------------------------------------------------------------- events
@@ -36,6 +41,7 @@ module "queue" {
   service_name    = each.key
   topic_arns      = { for event in each.value : event => module.topic[event].arn }
   alarm_topic_arn = aws_sns_topic.ops_alerts.arn
+  filter_policies = lookup(local.consumer_filters, each.key, {})
 }
 
 # ---------------------------------------------------------------- alerts

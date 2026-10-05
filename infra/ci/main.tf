@@ -112,6 +112,8 @@ data "aws_iam_policy_document" "plan" {
       "arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*-applications",
       "arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*-parsed-cvs",
       "arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*-matches",
+      "arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*-notifications",
+      "arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*-audit-log",
     ]
   }
 }
@@ -149,7 +151,20 @@ data "aws_iam_policy_document" "deploy" {
       "arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*",
       "arn:aws:logs:${var.region}:${local.account_id}:log-group:/aws/lambda/${local.prefix}-*",
       "arn:aws:cloudwatch:${var.region}:${local.account_id}:alarm:${local.prefix}-*",
+      "arn:aws:cloudwatch::${local.account_id}:dashboard/${local.prefix}-*",
     ]
+  }
+
+  statement {
+    sid       = "SavedLogQueries" # query definitions have random IDs
+    actions   = ["logs:PutQueryDefinition", "logs:DeleteQueryDefinition", "logs:DescribeQueryDefinitions"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "SesIdentities" # verifying an address only sends it a confirmation link
+    actions   = ["ses:VerifyEmailIdentity", "ses:DeleteIdentity", "ses:GetIdentityVerificationAttributes"]
+    resources = ["*"]
   }
 
   statement {

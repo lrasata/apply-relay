@@ -54,3 +54,15 @@ variable "lambda_permissions_boundary" {
   type        = string
   default     = null
 }
+
+variable "recruiter_email" {
+  description = "Where strong-match emails go, and the address they're sent from. Defaults to alert_email. Must be verified in SES (AWS emails a link on apply)."
+  type        = string
+  default     = null
+}
+
+variable "audit_retention_days" {
+  description = "Days before audit events are deleted (they contain candidate names and emails). 0 keeps them forever."
+  type        = number
+  default     = 365
+}

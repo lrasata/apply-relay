@@ -83,6 +83,16 @@ All events share one [envelope](docs/events/envelope.schema.json):
 | A bad message blocks a queue | Lambda reports partial batch failures, so only the failing message is retried. |
 | "Where did this application get stuck?" | `correlation_id` in every log line plus AWS X-Ray traces across services. |
 
+## Observability
+
+| Question | Where to look |
+|---|---|
+| Is anything broken right now? | 9 CloudWatch alarms email you: a dead-letter queue got a message, a queue has a backlog older than 15 minutes, or the API returns 5xx |
+| How is the pipeline doing? | the `jae-dev-pipeline` CloudWatch dashboard (`terraform output dashboard_url`) |
+| What happened to application `app_...`? | `python scripts/trace_application.py app_...` reads its event history from the audit log |
+| Where did it get slow or fail? | X-Ray: Lambdas and SNS topics have active tracing, so one application is one connected trace across all five services |
+| What did the services log about it? | the saved Logs Insights query `jae-dev/trace-one-application`; every log line is JSON with `correlation_id` |
+
 ## Design decisions
 
 * [0001: Lambda instead of ECS Fargate](docs/decisions/0001-lambda-over-fargate.md)
@@ -100,7 +110,7 @@ Python 3.12 · AWS Lambda · API Gateway · SNS · SQS · DynamoDB · S3 · SES 
 - [x] 4. CV parser service
 - [x] 5. Matching service
 - [x] 6. CI/CD with GitHub Actions
-- [ ] 7. Notification and audit services, tracing and alarms
+- [x] 7. Notification and audit services, tracing and alarms
 
 ## Project layout
 

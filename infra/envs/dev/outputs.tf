@@ -29,3 +29,12 @@ output "applications_table" {
 output "cvs_bucket" {
   value = aws_s3_bucket.cvs.bucket
 }
+
+output "dashboard_url" {
+  value = "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards/dashboard/${aws_cloudwatch_dashboard.pipeline.dashboard_name}"
+}
+
+output "audit_table" {
+  description = "Read one application's history: python scripts/trace_application.py <application_id>"
+  value       = aws_dynamodb_table.audit_log.name
+}

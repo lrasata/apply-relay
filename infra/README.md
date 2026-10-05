@@ -67,6 +67,19 @@ This function bundles `pypdf`, so its package is built first with `python script
 
 To add or change a job, edit `jobs.json` and apply; Terraform updates the table items.
 
+## What step 7 adds (21 resources)
+
+| | Resources |
+|---|---|
+| Notification | `jae-dev-notification` Lambda, `jae-dev-notifications` table (sent log), an SES email identity. The queue's SNS subscription has a filter policy, so only `strong_match` events reach it |
+| Audit | `jae-dev-audit` Lambda (append-only: it can `PutItem` and nothing else), `jae-dev-audit-log` table keyed by application and time, with a TTL (365 days by default, `audit_retention_days`) |
+| Alarms | a backlog alarm per queue (oldest message > 15 min) and an API 5xx alarm, on top of the 4 DLQ alarms: 9 in total, inside the 10 free alarms |
+| Dashboard | `jae-dev-pipeline`: API traffic, events published, Lambda errors and p95 duration, queue and DLQ depth |
+| Queries | saved Logs Insights queries `jae-dev/trace-one-application` and `jae-dev/errors` |
+| Tracing | X-Ray active tracing on the three SNS topics (all Lambdas already had it) |
+
+Strong-match emails go to `recruiter_email` (defaults to `alert_email`) and are sent from that same address. AWS emails it a verification link on apply; click it once, or the notification messages will fail and land in the DLQ. A new account's SES sandbox only sends to verified addresses, which is all this project needs.
+
 **Expected cost:** effectively $0 while idle. SNS, SQS, Lambda and DynamoDB on-demand are within the free tier at portfolio traffic, API Gateway HTTP APIs cost about $1 per million requests, the first 10 CloudWatch alarms and the first 2 budgets are free, and the state bucket holds a few KB.
 
 ## Deploy it yourself
@@ -94,11 +107,11 @@ cp example.tfvars dev.tfvars           # put your email in it
 ```bash
 python ../../../scripts/build_lambda.py cv_parser   # bundles pypdf for the CV parser
 terraform init -backend-config=backend.hcl
-terraform plan -var-file=dev.tfvars    # should say: Plan: 62 to add
+terraform plan -var-file=dev.tfvars    # should say: Plan: 83 to add
 terraform apply -var-file=dev.tfvars
 ```
 
-**4. Confirm the alert email.** AWS sends a "Subscription Confirmation" email to `alert_email`; click the link once, or alarms won't reach you.
+**4. Confirm two emails.** AWS sends `alert_email` a "Subscription Confirmation" (for alarms) and an "Email Address Verification Request" (from SES, for recruiter emails). Click both links once.
 
 ## CI/CD with GitHub Actions
 

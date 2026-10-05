@@ -66,6 +66,8 @@ resource "aws_sns_topic_subscription" "this" {
   protocol             = "sqs"
   endpoint             = aws_sqs_queue.this.arn
   raw_message_delivery = true # consumers receive the event envelope itself, not an SNS wrapper
+  # Optional: only deliver messages whose attributes match, e.g. {"recommendation": ["strong_match"]}
+  filter_policy = lookup(var.filter_policies, each.key, null)
 
   depends_on = [aws_sqs_queue_policy.this]
 }
@@ -80,6 +82,23 @@ resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
   period              = 300
   evaluation_periods  = 1
   threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [var.alarm_topic_arn]
+  ok_actions          = [var.alarm_topic_arn]
+}
+
+# Messages piling up without failing (e.g. the consumer is throttled or its trigger is disabled).
+resource "aws_cloudwatch_metric_alarm" "oldest_message_age" {
+  alarm_name          = "${local.queue_name}-backlog"
+  alarm_description   = "The oldest message in the ${var.service_name} queue has waited more than ${var.max_message_age_seconds} seconds."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateAgeOfOldestMessage"
+  dimensions          = { QueueName = aws_sqs_queue.this.name }
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = var.max_message_age_seconds
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = [var.alarm_topic_arn]

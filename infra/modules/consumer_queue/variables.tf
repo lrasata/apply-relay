@@ -34,3 +34,15 @@ variable "max_receive_count" {
     error_message = "max_receive_count must be between 1 and 10."
   }
 }
+
+variable "filter_policies" {
+  description = "Optional SNS filter policy (JSON) per topic key, on message attributes."
+  type        = map(string)
+  default     = {}
+}
+
+variable "max_message_age_seconds" {
+  description = "Alarm when the oldest message in the queue is older than this."
+  type        = number
+  default     = 900
+}
