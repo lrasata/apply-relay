@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://job-application-events/events/cv-parsed.schema.json",
+  "title": "CvParsed (v1) data",
+  "description": "The CV parser extracted structured information from an application's CV.",
+  "type": "object",
+  "required": ["application_id", "job_id", "skills", "years_of_experience", "languages", "parsed_at"],
+  "additionalProperties": false,
+  "properties": {
+    "application_id": { "type": "string" },
+    "job_id": { "type": "string", "description": "Carried forward so the matching service needs nothing from other services." },
+    "skills": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "description": "Normalised, lower-case skill names, e.g. \"terraform\", \"aws lambda\"."
+    },
+    "years_of_experience": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Best estimate, or null when the CV doesn't say."
+    },
+    "languages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Spoken languages found in the CV, e.g. \"english\", \"german\"."
+    },
+    "parsed_at": { "type": "string", "format": "date-time" }
+  },
+  "examples": [
+    {
+      "application_id": "app_5f1d7a0c9e2b",
+      "job_id": "job_devops_munich_042",
+      "skills": ["aws", "terraform", "python", "docker", "github actions"],
+      "years_of_experience": 5,
+      "languages": ["english", "french", "german"],
+      "parsed_at": "2026-10-05T18:40:03Z"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://job-application-events/events/envelope.schema.json",
+  "title": "Event envelope",
+  "description": "Common wrapper for every event published on SNS. The event-specific payload goes in `data`.",
+  "type": "object",
+  "required": ["event_id", "event_type", "event_version", "occurred_at", "correlation_id", "producer", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique per event. Consumers use it to ignore duplicate deliveries."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["ApplicationSubmitted", "CvParsed", "CandidateMatched"]
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Payload version. Bumped on breaking changes to `data`."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the fact happened, in UTC (ISO 8601)."
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "The application ID. Identical across every event about one application, for tracing."
+    },
+    "producer": {
+      "type": "string",
+      "enum": ["application-service", "cv-parser-service", "matching-service"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-specific payload; see the schema for each event_type."
+    }
+  }
+}

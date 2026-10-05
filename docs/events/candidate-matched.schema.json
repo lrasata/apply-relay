@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://job-application-events/events/candidate-matched.schema.json",
+  "title": "CandidateMatched (v1) data",
+  "description": "The matching service scored a candidate against the job they applied for.",
+  "type": "object",
+  "required": ["application_id", "job_id", "score", "matched_skills", "missing_skills", "recommendation", "matched_at"],
+  "additionalProperties": false,
+  "properties": {
+    "application_id": { "type": "string" },
+    "job_id": { "type": "string" },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Share of required skills the candidate has, weighted, as a percentage."
+    },
+    "matched_skills": { "type": "array", "items": { "type": "string" } },
+    "missing_skills": { "type": "array", "items": { "type": "string" } },
+    "recommendation": {
+      "type": "string",
+      "enum": ["strong_match", "possible_match", "weak_match"],
+      "description": "strong_match >= 75, possible_match >= 50, otherwise weak_match. Only strong matches notify the recruiter."
+    },
+    "matched_at": { "type": "string", "format": "date-time" }
+  },
+  "examples": [
+    {
+      "application_id": "app_5f1d7a0c9e2b",
+      "job_id": "job_devops_munich_042",
+      "score": 80,
+      "matched_skills": ["aws", "terraform", "python", "docker"],
+      "missing_skills": ["kubernetes"],
+      "recommendation": "strong_match",
+      "matched_at": "2026-10-05T18:40:05Z"
+    }
+  ]
+}

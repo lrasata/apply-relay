@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://job-application-events/events/application-submitted.schema.json",
+  "title": "ApplicationSubmitted (v1) data",
+  "description": "A candidate submitted a new application. Published once per application, never for a duplicate submission.",
+  "type": "object",
+  "required": ["application_id", "job_id", "candidate", "cv", "submitted_at"],
+  "additionalProperties": false,
+  "properties": {
+    "application_id": {
+      "type": "string",
+      "description": "Deterministic: derived from candidate email + job ID, so a repeat submission maps to the same ID."
+    },
+    "job_id": { "type": "string" },
+    "candidate": {
+      "type": "object",
+      "required": ["candidate_id", "full_name", "email"],
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": { "type": "string" },
+        "full_name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "cv": {
+      "type": "object",
+      "required": ["bucket", "key", "content_type"],
+      "additionalProperties": false,
+      "description": "Where the CV file is stored. The file itself never travels in an event.",
+      "properties": {
+        "bucket": { "type": "string" },
+        "key": { "type": "string" },
+        "content_type": { "type": "string", "enum": ["application/pdf", "text/plain"] }
+      }
+    },
+    "submitted_at": { "type": "string", "format": "date-time" }
+  },
+  "examples": [
+    {
+      "application_id": "app_5f1d7a0c9e2b",
+      "job_id": "job_devops_munich_042",
+      "candidate": {
+        "candidate_id": "cand_8a3e19",
+        "full_name": "Alex Example",
+        "email": "alex@example.com"
+      },
+      "cv": {
+        "bucket": "jae-cvs-dev",
+        "key": "applications/app_5f1d7a0c9e2b/cv.pdf",
+        "content_type": "application/pdf"
+      },
+      "submitted_at": "2026-10-05T18:40:00Z"
+    }
+  ]
+}
