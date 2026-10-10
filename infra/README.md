@@ -4,7 +4,7 @@ All AWS resources are defined in Terraform (>= 1.10, AWS provider 5.x).
 
 ```
 infra/
-├── bootstrap/            # one-time: S3 bucket for Terraform state
+├── bootstrap/            # one-time: S3 bucket + DynamoDB lock table for Terraform state
 ├── ci/                   # one-time: GitHub OIDC provider and the CI roles
 ├── envs/dev/             # the dev environment (wires the modules together)
 └── modules/
@@ -86,19 +86,19 @@ Strong-match emails go to `recruiter_email` (defaults to `alert_email`) and are 
 
 Prerequisites: Terraform >= 1.10, AWS CLI v2, and credentials for your account (`aws sts get-caller-identity` should work). Default region is `eu-central-1` (Frankfurt).
 
-**1. Create the state bucket (once).**
+**1. Create the state bucket and lock table (once).**
 
 ```bash
 cd infra/bootstrap
 terraform init
-terraform apply            # note the state_bucket output
+terraform apply            # note the state_bucket and lock_table outputs
 ```
 
 **2. Configure the dev environment.**
 
 ```bash
 cd ../envs/dev
-cp backend.hcl.example backend.hcl     # put the bucket name from step 1 in it
+cp backend.hcl.example backend.hcl     # put the bucket and lock_table names from step 1 in it
 cp example.tfvars dev.tfvars           # put your email in it
 ```
 

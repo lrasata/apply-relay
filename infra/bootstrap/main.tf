@@ -1,8 +1,8 @@
-# One-time setup: the S3 bucket that stores Terraform state for every environment.
-# Applied once with local state; everything else then uses this bucket as its backend.
+# One-time setup: the S3 bucket and DynamoDB lock table for Terraform state.
+# Applied once with local state; everything else then uses these as its backend.
 
 terraform {
-  required_version = ">= 1.10" # S3 native state locking (use_lockfile) needs 1.10+
+  required_version = ">= 1.6"
 
   required_providers {
     aws = {
@@ -71,13 +71,33 @@ resource "aws_s3_bucket_lifecycle_configuration" "state" {
   }
 }
 
+resource "aws_dynamodb_table" "state_lock" {
+  name         = "${aws_s3_bucket.state.bucket}-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+}
+
 variable "region" {
-  description = "AWS region for the state bucket (use the same region as the environments)."
+  description = "AWS region for the state bucket and lock table (use the same region as the environments)."
   type        = string
   default     = "eu-central-1"
 }
 
 output "state_bucket" {
-  description = "Put this in infra/envs/dev/backend.hcl."
+  description = "Put this in infra/envs/dev/backend.hcl as 'bucket'."
   value       = aws_s3_bucket.state.bucket
+}
+
+output "lock_table" {
+  description = "Put this in infra/envs/dev/backend.hcl as 'dynamodb_table'."
+  value       = aws_dynamodb_table.state_lock.name
 }

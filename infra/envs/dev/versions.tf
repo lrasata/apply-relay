@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.10"
+  required_version = ">= 1.6"
 
   required_providers {
     aws = {
@@ -12,12 +12,11 @@ terraform {
     }
   }
 
-  # Bucket and region come from backend.hcl (see backend.hcl.example):
+  # bucket, region, and dynamodb_table come from backend.hcl (see backend.hcl.example):
   #   terraform init -backend-config=backend.hcl
   backend "s3" {
-    key          = "dev/terraform.tfstate"
-    use_lockfile = true # S3 native locking, no DynamoDB lock table needed
-    encrypt      = true
+    key     = "dev/terraform.tfstate"
+    encrypt = true
   }
 }
 

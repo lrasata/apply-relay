@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.10"
+  required_version = ">= 1.6"
 
   required_providers {
     aws = {
@@ -11,9 +11,8 @@ terraform {
   # Same state bucket as the environments, different key:
   #   terraform init -backend-config=../envs/dev/backend.hcl
   backend "s3" {
-    key          = "ci/terraform.tfstate"
-    use_lockfile = true
-    encrypt      = true
+    key     = "ci/terraform.tfstate"
+    encrypt = true
   }
 }
 
