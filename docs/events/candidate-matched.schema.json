@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://job-application-events/events/candidate-matched.schema.json",
+  "$id": "https://apply-relay/events/candidate-matched.schema.json",
   "title": "CandidateMatched (v1) data",
   "description": "The matching service scored a candidate against the job they applied for.",
   "type": "object",

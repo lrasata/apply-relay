@@ -21,7 +21,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project   = "job-application-events"
+      Project   = "apply-relay"
       ManagedBy = "terraform"
       Component = "ci"
     }

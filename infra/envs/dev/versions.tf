@@ -25,7 +25,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "job-application-events"
+      Project     = "apply-relay"
       Environment = var.environment
       ManagedBy   = "terraform"
     }

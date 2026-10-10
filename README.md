@@ -1,4 +1,4 @@
-# Job Application Events
+# Apply Relay
 
 An event-driven job application pipeline on AWS, built from five small services that talk only through events (SNS → SQS).
 

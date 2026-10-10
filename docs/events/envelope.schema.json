@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://job-application-events/events/envelope.schema.json",
+  "$id": "https://apply-relay/events/envelope.schema.json",
   "title": "Event envelope",
   "description": "Common wrapper for every event published on SNS. The event-specific payload goes in `data`.",
   "type": "object",

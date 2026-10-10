@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://job-application-events/events/application-submitted.schema.json",
+  "$id": "https://apply-relay/events/application-submitted.schema.json",
   "title": "ApplicationSubmitted (v1) data",
   "description": "A candidate submitted a new application. Published once per application, never for a duplicate submission.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://job-application-events/events/cv-parsed.schema.json",
+  "$id": "https://apply-relay/events/cv-parsed.schema.json",
   "title": "CvParsed (v1) data",
   "description": "The CV parser extracted structured information from an application's CV.",
   "type": "object",
