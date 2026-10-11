@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefix for resource names, e.g. jae-dev."
+  description = "Prefix for resource names, e.g. apply-relay-dev."
   type        = string
 }
 

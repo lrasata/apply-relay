@@ -1,6 +1,6 @@
 """Print the full event history of one application from the audit log.
 
-    python scripts/trace_application.py app_5f1d7a0c9e2b [--table jae-dev-audit-log]
+    python scripts/trace_application.py app_5f1d7a0c9e2b [--table apply-relay-dev-audit-log]
 
 Read-only. Uses your normal AWS credentials and region (AWS_PROFILE, AWS_REGION, ...).
 """
@@ -15,7 +15,7 @@ from boto3.dynamodb.conditions import Key
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("application_id")
-    parser.add_argument("--table", default="jae-dev-audit-log")
+    parser.add_argument("--table", default="apply-relay-dev-audit-log")
     parser.add_argument("--region", default=None)
     parser.add_argument("--full", action="store_true", help="also print each event's payload")
     args = parser.parse_args()

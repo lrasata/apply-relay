@@ -16,11 +16,11 @@ infra/
 
 | | Resources |
 |---|---|
-| Event topics | `jae-dev-application-submitted`, `jae-dev-cv-parsed`, `jae-dev-candidate-matched` (SNS, encrypted at rest) |
-| Consumer queues | `jae-dev-cv-parser`, `jae-dev-matching`, `jae-dev-notification`, `jae-dev-audit` (SQS, encrypted, long polling) |
+| Event topics | `apply-relay-dev-application-submitted`, `apply-relay-dev-cv-parsed`, `apply-relay-dev-candidate-matched` (SNS, encrypted at rest) |
+| Consumer queues | `apply-relay-dev-cv-parser`, `apply-relay-dev-matching`, `apply-relay-dev-notification`, `apply-relay-dev-audit` (SQS, encrypted, long polling) |
 | Dead-letter queues | one `-dlq` per queue, 14-day retention; a message moves there after 3 failed attempts |
 | Wiring | SNS → SQS subscriptions with raw delivery, and queue policies that only accept messages from the subscribed topics |
-| Alerts | a CloudWatch alarm per DLQ ("anything landed here?") → `jae-dev-ops-alerts` SNS topic → your email |
+| Alerts | a CloudWatch alarm per DLQ ("anything landed here?") → `apply-relay-dev-ops-alerts` SNS topic → your email |
 | Cost guardrail | an account-wide monthly AWS budget (default $5) that emails you at 80% forecast and 100% actual |
 
 The wiring lives in one map in [`envs/dev/main.tf`](envs/dev/main.tf):
@@ -40,9 +40,9 @@ Adding a consumer, or subscribing one to another event, is a one-line change.
 
 | | Resources |
 |---|---|
-| Public API | `jae-dev-api` HTTP API with one route, `POST /applications`, throttled to 5 requests/s (burst 10) |
-| Function | `jae-dev-application` Lambda (Python 3.12, arm64), X-Ray tracing, logs kept 14 days |
-| Data | `jae-dev-applications` DynamoDB table (on-demand) and `jae-dev-cvs-<account-id>` S3 bucket (private, encrypted, CVs deleted after 30 days) |
+| Public API | `apply-relay-dev-api` HTTP API with one route, `POST /applications`, throttled to 5 requests/s (burst 10) |
+| Function | `apply-relay-dev-application` Lambda (Python 3.12, arm64), X-Ray tracing, logs kept 14 days |
+| Data | `apply-relay-dev-applications` DynamoDB table (on-demand) and `apply-relay-dev-cvs-<account-id>` S3 bucket (private, encrypted, CVs deleted after 30 days) |
 | Permissions | one IAM role that can only write its own table, put CVs, and publish to `application-submitted` |
 
 Terraform zips `services/application/src` itself (via the `archive` provider), so there is no separate build step.
@@ -51,8 +51,8 @@ Terraform zips `services/application/src` itself (via the `archive` provider), s
 
 | | Resources |
 |---|---|
-| Function | `jae-dev-cv-parser` Lambda (Python 3.12, arm64, 512 MB), triggered by the `jae-dev-cv-parser` queue in batches of 10, at most 2 running at once |
-| Data | `jae-dev-parsed-cvs` DynamoDB table (on-demand) |
+| Function | `apply-relay-dev-cv-parser` Lambda (Python 3.12, arm64, 512 MB), triggered by the `apply-relay-dev-cv-parser` queue in batches of 10, at most 2 running at once |
+| Data | `apply-relay-dev-parsed-cvs` DynamoDB table (on-demand) |
 | Permissions | one IAM role that can read its queue and CVs, write its own table, and publish to `cv-parsed` |
 
 This function bundles `pypdf`, so its package is built first with `python scripts/build_lambda.py cv_parser` (see "Deploy it yourself").
@@ -61,8 +61,8 @@ This function bundles `pypdf`, so its package is built first with `python script
 
 | | Resources |
 |---|---|
-| Function | `jae-dev-matching` Lambda (Python 3.12, arm64), triggered by the `jae-dev-matching` queue in batches of 10, at most 2 running at once |
-| Data | `jae-dev-matches` table, and `jae-dev-jobs` table seeded with the 3 jobs in [`services/matching/jobs.json`](../services/matching/jobs.json) |
+| Function | `apply-relay-dev-matching` Lambda (Python 3.12, arm64), triggered by the `apply-relay-dev-matching` queue in batches of 10, at most 2 running at once |
+| Data | `apply-relay-dev-matches` table, and `apply-relay-dev-jobs` table seeded with the 3 jobs in [`services/matching/jobs.json`](../services/matching/jobs.json) |
 | Permissions | one IAM role that can read its queue and the jobs, write its own matches, and publish to `candidate-matched` |
 
 To add or change a job, edit `jobs.json` and apply; Terraform updates the table items.
@@ -71,11 +71,11 @@ To add or change a job, edit `jobs.json` and apply; Terraform updates the table 
 
 | | Resources |
 |---|---|
-| Notification | `jae-dev-notification` Lambda, `jae-dev-notifications` table (sent log), an SES email identity. The queue's SNS subscription has a filter policy, so only `strong_match` events reach it |
-| Audit | `jae-dev-audit` Lambda (append-only: it can `PutItem` and nothing else), `jae-dev-audit-log` table keyed by application and time, with a TTL (365 days by default, `audit_retention_days`) |
+| Notification | `apply-relay-dev-notification` Lambda, `apply-relay-dev-notifications` table (sent log), an SES email identity. The queue's SNS subscription has a filter policy, so only `strong_match` events reach it |
+| Audit | `apply-relay-dev-audit` Lambda (append-only: it can `PutItem` and nothing else), `apply-relay-dev-audit-log` table keyed by application and time, with a TTL (365 days by default, `audit_retention_days`) |
 | Alarms | a backlog alarm per queue (oldest message > 15 min) and an API 5xx alarm, on top of the 4 DLQ alarms: 9 in total, inside the 10 free alarms |
-| Dashboard | `jae-dev-pipeline`: API traffic, events published, Lambda errors and p95 duration, queue and DLQ depth |
-| Queries | saved Logs Insights queries `jae-dev/trace-one-application` and `jae-dev/errors` |
+| Dashboard | `apply-relay-dev-pipeline`: API traffic, events published, Lambda errors and p95 duration, queue and DLQ depth |
+| Queries | saved Logs Insights queries `apply-relay-dev/trace-one-application` and `apply-relay-dev/errors` |
 | Tracing | X-Ray active tracing on the three SNS topics (all Lambdas already had it) |
 
 Strong-match emails go to `recruiter_email` (defaults to `alert_email`) and are sent from that same address. AWS emails it a verification link on apply; click it once, or the notification messages will fail and land in the DLQ. A new account's SES sandbox only sends to verified addresses, which is all this project needs.
@@ -124,10 +124,10 @@ There are no AWS keys in GitHub. Jobs exchange GitHub's OIDC token for 1-hour cr
 
 | Role | Who can assume it | Can do |
 |---|---|---|
-| `jae-github-plan` | pull requests and `main` of your repo | read-only (`ReadOnlyAccess`), minus CVs and application data; read/write the state lock |
-| `jae-github-deploy` | only jobs running in the GitHub environment `dev` | create and change `jae-*` resources only; cannot touch the CI roles or delete the state bucket |
+| `apply-relay-github-plan` | pull requests and `main` of your repo | read-only (`ReadOnlyAccess`), minus CVs and application data; read/write the state lock |
+| `apply-relay-github-deploy` | only jobs running in the GitHub environment `dev` | create and change `apply-relay-*` resources only; cannot touch the CI roles or delete the state bucket |
 
-Every Lambda role CI creates must carry the `jae-lambda-boundary` permissions boundary, so even a malicious change to a service's IAM policy in a pull request can't grant more than the services need.
+Every Lambda role CI creates must carry the `apply-relay-lambda-boundary` permissions boundary, so even a malicious change to a service's IAM policy in a pull request can't grant more than the services need.
 
 Until the repository variables below exist, the AWS jobs are skipped and CI just runs the tests and checks.
 

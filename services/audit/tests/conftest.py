@@ -20,7 +20,7 @@ def aws(monkeypatch):
 
     with mock_aws():
         table = boto3.resource("dynamodb").create_table(
-            TableName="jae-test-audit-log",
+            TableName="apply-relay-test-audit-log",
             KeySchema=[
                 {"AttributeName": "correlation_id", "KeyType": "HASH"},
                 {"AttributeName": "sk", "KeyType": "RANGE"},
@@ -31,7 +31,7 @@ def aws(monkeypatch):
             ],
             BillingMode="PAY_PER_REQUEST",
         )
-        monkeypatch.setenv("TABLE_NAME", "jae-test-audit-log")
+        monkeypatch.setenv("TABLE_NAME", "apply-relay-test-audit-log")
         monkeypatch.setenv("RETENTION_DAYS", "365")
         handler_module._table.cache_clear()
         yield {"table": table}

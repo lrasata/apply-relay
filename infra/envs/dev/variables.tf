@@ -5,7 +5,7 @@ variable "region" {
 }
 
 variable "environment" {
-  description = "Environment name, used in resource names (jae-<environment>-...)."
+  description = "Environment name, used in resource names (apply-relay-<environment>-...)."
   type        = string
   default     = "dev"
 

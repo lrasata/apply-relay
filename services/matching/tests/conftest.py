@@ -34,22 +34,22 @@ def aws(monkeypatch):
                 BillingMode="PAY_PER_REQUEST",
             )
 
-        matches = create_table("jae-test-matches", "application_id")
-        jobs = create_table("jae-test-jobs", "job_id")
+        matches = create_table("apply-relay-test-matches", "application_id")
+        jobs = create_table("apply-relay-test-jobs", "job_id")
         for job in JOBS:
             jobs.put_item(Item=job)
 
         sns = boto3.client("sns")
-        topic_arn = sns.create_topic(Name="jae-test-candidate-matched")["TopicArn"]
+        topic_arn = sns.create_topic(Name="apply-relay-test-candidate-matched")["TopicArn"]
         sqs = boto3.client("sqs")
-        queue_url = sqs.create_queue(QueueName="jae-test-notification")["QueueUrl"]
+        queue_url = sqs.create_queue(QueueName="apply-relay-test-notification")["QueueUrl"]
         queue_arn = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
         sns.subscribe(
             TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn, Attributes={"RawMessageDelivery": "true"}
         )
 
-        monkeypatch.setenv("MATCHES_TABLE", "jae-test-matches")
-        monkeypatch.setenv("JOBS_TABLE", "jae-test-jobs")
+        monkeypatch.setenv("MATCHES_TABLE", "apply-relay-test-matches")
+        monkeypatch.setenv("JOBS_TABLE", "apply-relay-test-jobs")
         monkeypatch.setenv("TOPIC_ARN", topic_arn)
         handler_module._aws.cache_clear()
 

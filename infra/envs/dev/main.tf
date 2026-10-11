@@ -1,5 +1,5 @@
 locals {
-  name_prefix = "jae-${var.environment}"
+  name_prefix = "apply-relay-${var.environment}"
 
   # Event type (as in the envelope) => topic name.
   events = {

@@ -45,7 +45,7 @@
         "email": "alex@example.com"
       },
       "cv": {
-        "bucket": "jae-cvs-dev",
+        "bucket": "apply-relay-cvs-dev",
         "key": "applications/app_5f1d7a0c9e2b/cv.pdf",
         "content_type": "application/pdf"
       },

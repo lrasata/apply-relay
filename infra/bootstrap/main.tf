@@ -28,7 +28,7 @@ data "aws_caller_identity" "current" {}
 
 resource "aws_s3_bucket" "state" {
   # Account ID in the name keeps it globally unique without guessing.
-  bucket = "jae-tfstate-${data.aws_caller_identity.current.account_id}-${var.region}"
+  bucket = "apply-relay-tfstate-${data.aws_caller_identity.current.account_id}-${var.region}"
 
   lifecycle {
     prevent_destroy = true

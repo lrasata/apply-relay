@@ -24,14 +24,14 @@ def aws(monkeypatch):
 
     with mock_aws():
         table = boto3.resource("dynamodb").create_table(
-            TableName="jae-test-notifications",
+            TableName="apply-relay-test-notifications",
             KeySchema=[{"AttributeName": "application_id", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "application_id", "AttributeType": "S"}],
             BillingMode="PAY_PER_REQUEST",
         )
         boto3.client("ses").verify_email_identity(EmailAddress=SENDER)
 
-        monkeypatch.setenv("TABLE_NAME", "jae-test-notifications")
+        monkeypatch.setenv("TABLE_NAME", "apply-relay-test-notifications")
         monkeypatch.setenv("SENDER_EMAIL", SENDER)
         monkeypatch.setenv("RECRUITER_EMAIL", RECRUITER)
         handler_module._aws.cache_clear()

@@ -2,13 +2,13 @@
 #
 #   plan role    pull requests: read-only, runs `terraform plan`
 #   deploy role  only jobs in the GitHub environment "dev": runs `terraform apply`,
-#                limited to resources named jae-*
+#                limited to resources named apply-relay-*
 #
 # Roles the deploy role creates (the Lambda roles) must carry the permissions boundary
 # below, so a workflow can never create a role more powerful than the services need.
 
 locals {
-  prefix       = "jae"
+  prefix       = "apply-relay"
   account_id   = data.aws_caller_identity.current.account_id
   github_oidc  = "token.actions.githubusercontent.com"
   repo_subject = "repo:${var.github_repository}"
@@ -194,7 +194,7 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["arn:aws:budgets::${local.account_id}:budget/${local.prefix}-*"]
   }
 
-  # Roles: only jae-* roles, only with the boundary, and only passed to Lambda.
+  # Roles: only apply-relay-* roles, only with the boundary, and only passed to Lambda.
   statement {
     sid       = "CreateRolesWithBoundary"
     actions   = ["iam:CreateRole", "iam:PutRolePolicy", "iam:AttachRolePolicy", "iam:PutRolePermissionsBoundary"]

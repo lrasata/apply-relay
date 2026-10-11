@@ -9,8 +9,8 @@ from moto import mock_aws
 from application_service import handler as handler_module
 
 REGION = "eu-central-1"
-TABLE = "jae-test-applications"
-BUCKET = "jae-test-cvs"
+TABLE = "apply-relay-test-applications"
+BUCKET = "apply-relay-test-cvs"
 EVENTS_DIR = Path(__file__).resolve().parents[3] / "docs" / "events"
 
 PDF_BYTES = b"%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"
@@ -37,9 +37,9 @@ def aws(monkeypatch):
         s3.create_bucket(Bucket=BUCKET, CreateBucketConfiguration={"LocationConstraint": REGION})
 
         sns = boto3.client("sns")
-        topic_arn = sns.create_topic(Name="jae-test-application-submitted")["TopicArn"]
+        topic_arn = sns.create_topic(Name="apply-relay-test-application-submitted")["TopicArn"]
         sqs = boto3.client("sqs")
-        queue_url = sqs.create_queue(QueueName="jae-test-consumer")["QueueUrl"]
+        queue_url = sqs.create_queue(QueueName="apply-relay-test-consumer")["QueueUrl"]
         queue_arn = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
         sns.subscribe(
             TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn, Attributes={"RawMessageDelivery": "true"}

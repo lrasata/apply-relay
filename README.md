@@ -88,10 +88,10 @@ All events share one [envelope](docs/events/envelope.schema.json):
 | Question | Where to look |
 |---|---|
 | Is anything broken right now? | 9 CloudWatch alarms email you: a dead-letter queue got a message, a queue has a backlog older than 15 minutes, or the API returns 5xx |
-| How is the pipeline doing? | the `jae-dev-pipeline` CloudWatch dashboard (`terraform output dashboard_url`) |
+| How is the pipeline doing? | the `apply-relay-dev-pipeline` CloudWatch dashboard (`terraform output dashboard_url`) |
 | What happened to application `app_...`? | `python scripts/trace_application.py app_...` reads its event history from the audit log |
 | Where did it get slow or fail? | X-Ray: Lambdas and SNS topics have active tracing, so one application is one connected trace across all five services |
-| What did the services log about it? | the saved Logs Insights query `jae-dev/trace-one-application`; every log line is JSON with `correlation_id` |
+| What did the services log about it? | the saved Logs Insights query `apply-relay-dev/trace-one-application`; every log line is JSON with `correlation_id` |
 
 ## Design decisions
 
