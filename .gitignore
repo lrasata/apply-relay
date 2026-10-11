@@ -21,3 +21,8 @@ backend.hcl
 # Lambda zips built by Terraform
 infra/envs/*/build/
 services/*/build/
+
+# IDE
+*.iml
+.idea/
+.claude/
