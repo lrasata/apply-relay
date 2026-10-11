@@ -3,6 +3,7 @@
 
 locals {
   matching_service = "${local.name_prefix}-matching"
+  matching_count   = local.deploy.matching ? 1 : 0
 
   # The job catalogue lives next to the service's code and is loaded into its own table.
   jobs = { for job in jsondecode(file("${path.root}/../../../services/matching/jobs.json")) : job.job_id => job }
@@ -11,6 +12,8 @@ locals {
 # ---------------------------------------------------------------- data owned by the service
 
 resource "aws_dynamodb_table" "matches" {
+  count = local.matching_count
+
   name         = "${local.name_prefix}-matches"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "application_id"
@@ -26,6 +29,8 @@ resource "aws_dynamodb_table" "matches" {
 }
 
 resource "aws_dynamodb_table" "jobs" {
+  count = local.matching_count
+
   name         = "${local.name_prefix}-jobs"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "job_id"
@@ -41,10 +46,10 @@ resource "aws_dynamodb_table" "jobs" {
 }
 
 resource "aws_dynamodb_table_item" "job" {
-  for_each = local.jobs
+  for_each = local.deploy.matching ? local.jobs : {}
 
-  table_name = aws_dynamodb_table.jobs.name
-  hash_key   = aws_dynamodb_table.jobs.hash_key
+  table_name = aws_dynamodb_table.jobs[0].name
+  hash_key   = aws_dynamodb_table.jobs[0].hash_key
   item = jsonencode({
     job_id              = { S = each.value.job_id }
     title               = { S = each.value.title }
@@ -58,6 +63,8 @@ resource "aws_dynamodb_table_item" "job" {
 # ---------------------------------------------------------------- function
 
 data "archive_file" "matching" {
+  count = local.matching_count
+
   type        = "zip"
   source_dir  = "${path.root}/../../../services/matching/src"
   output_path = "${path.root}/build/matching.zip"
@@ -65,25 +72,29 @@ data "archive_file" "matching" {
 }
 
 resource "aws_cloudwatch_log_group" "matching" {
+  count = local.matching_count
+
   name              = "/aws/lambda/${local.matching_service}"
   retention_in_days = 14
 }
 
 resource "aws_lambda_function" "matching" {
+  count = local.matching_count
+
   function_name    = local.matching_service
-  role             = aws_iam_role.matching.arn
+  role             = aws_iam_role.matching[0].arn
   runtime          = "python3.12"
   architectures    = ["arm64"]
   handler          = "matching_service.handler.handler"
-  filename         = data.archive_file.matching.output_path
-  source_code_hash = data.archive_file.matching.output_base64sha256
+  filename         = data.archive_file.matching[0].output_path
+  source_code_hash = data.archive_file.matching[0].output_base64sha256
   memory_size      = 256
   timeout          = 30 # the queue's 180 s visibility timeout is 6x this
 
   environment {
     variables = {
-      MATCHES_TABLE = aws_dynamodb_table.matches.name
-      JOBS_TABLE    = aws_dynamodb_table.jobs.name
+      MATCHES_TABLE = aws_dynamodb_table.matches[0].name
+      JOBS_TABLE    = aws_dynamodb_table.jobs[0].name
       TOPIC_ARN     = module.topic["candidate-matched"].arn
     }
   }
@@ -96,8 +107,10 @@ resource "aws_lambda_function" "matching" {
 }
 
 resource "aws_lambda_event_source_mapping" "matching" {
+  count = local.matching_count
+
   event_source_arn        = module.queue["matching"].queue_arn
-  function_name           = aws_lambda_function.matching.arn
+  function_name           = aws_lambda_function.matching[0].arn
   batch_size              = 10
   function_response_types = ["ReportBatchItemFailures"]
 
@@ -109,12 +122,16 @@ resource "aws_lambda_event_source_mapping" "matching" {
 # ---------------------------------------------------------------- permissions (least privilege)
 
 resource "aws_iam_role" "matching" {
+  count = local.matching_count
+
   name                 = local.matching_service
   assume_role_policy   = data.aws_iam_policy_document.lambda_assume.json
   permissions_boundary = var.lambda_permissions_boundary
 }
 
 data "aws_iam_policy_document" "matching" {
+  count = local.matching_count
+
   statement {
     sid       = "ConsumeQueue"
     actions   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
@@ -124,13 +141,13 @@ data "aws_iam_policy_document" "matching" {
   statement {
     sid       = "OwnMatchesTable"
     actions   = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:UpdateItem"]
-    resources = [aws_dynamodb_table.matches.arn]
+    resources = [aws_dynamodb_table.matches[0].arn]
   }
 
   statement {
     sid       = "ReadJobs"
     actions   = ["dynamodb:GetItem"]
-    resources = [aws_dynamodb_table.jobs.arn]
+    resources = [aws_dynamodb_table.jobs[0].arn]
   }
 
   statement {
@@ -154,7 +171,7 @@ data "aws_iam_policy_document" "matching" {
   statement {
     sid       = "Logs"
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-    resources = ["${aws_cloudwatch_log_group.matching.arn}:*"]
+    resources = ["${aws_cloudwatch_log_group.matching[0].arn}:*"]
   }
 
   statement {
@@ -165,7 +182,9 @@ data "aws_iam_policy_document" "matching" {
 }
 
 resource "aws_iam_role_policy" "matching" {
+  count = local.matching_count
+
   name   = "matching-service"
-  role   = aws_iam_role.matching.id
-  policy = data.aws_iam_policy_document.matching.json
+  role   = aws_iam_role.matching[0].id
+  policy = data.aws_iam_policy_document.matching[0].json
 }

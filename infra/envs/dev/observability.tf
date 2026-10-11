@@ -10,20 +10,22 @@
 
 locals {
   functions = {
-    application  = aws_lambda_function.application.function_name
-    cv-parser    = aws_lambda_function.cv_parser.function_name
-    matching     = aws_lambda_function.matching.function_name
-    notification = aws_lambda_function.notification.function_name
-    audit        = aws_lambda_function.audit.function_name
+    application  = one(aws_lambda_function.application[*].function_name)
+    cv-parser    = one(aws_lambda_function.cv_parser[*].function_name)
+    matching     = one(aws_lambda_function.matching[*].function_name)
+    notification = one(aws_lambda_function.notification[*].function_name)
+    audit        = one(aws_lambda_function.audit[*].function_name)
   }
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  count = local.application_count
+
   alarm_name          = "${local.name_prefix}-api-5xx"
   alarm_description   = "POST /applications returned server errors."
   namespace           = "AWS/ApiGateway"
   metric_name         = "5xx"
-  dimensions          = { ApiId = aws_apigatewayv2_api.public.id, Stage = aws_apigatewayv2_stage.default.name }
+  dimensions          = { ApiId = aws_apigatewayv2_api.public[0].id, Stage = aws_apigatewayv2_stage.default[0].name }
   statistic           = "Sum"
   period              = 300
   evaluation_periods  = 1
@@ -36,7 +38,10 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
 
 # ---------------------------------------------------------------- dashboard
 
+# Created once every service is deployed, so no widget points at a missing function.
 resource "aws_cloudwatch_dashboard" "pipeline" {
+  count = alltrue(values(local.deploy)) ? 1 : 0
+
   dashboard_name = "${local.name_prefix}-pipeline"
 
   dashboard_body = jsonencode({
@@ -49,7 +54,7 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
           stat   = "Sum"
           period = 300
           metrics = [
-            ["AWS/ApiGateway", "Count", "ApiId", aws_apigatewayv2_api.public.id, "Stage", "$default"],
+            ["AWS/ApiGateway", "Count", "ApiId", aws_apigatewayv2_api.public[0].id, "Stage", "$default"],
             [".", "4xx", ".", ".", ".", "."],
             [".", "5xx", ".", ".", ".", "."],
           ]
@@ -112,17 +117,19 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
 # ---------------------------------------------------------------- saved Logs Insights queries
 
 locals {
-  all_log_groups = [
-    aws_cloudwatch_log_group.application.name,
-    aws_cloudwatch_log_group.cv_parser.name,
-    aws_cloudwatch_log_group.matching.name,
-    aws_cloudwatch_log_group.notification.name,
-    aws_cloudwatch_log_group.audit.name,
-  ]
+  all_log_groups = concat(
+    aws_cloudwatch_log_group.application[*].name,
+    aws_cloudwatch_log_group.cv_parser[*].name,
+    aws_cloudwatch_log_group.matching[*].name,
+    aws_cloudwatch_log_group.notification[*].name,
+    aws_cloudwatch_log_group.audit[*].name,
+  )
 }
 
 # Every service logs JSON with correlation_id = the application ID.
 resource "aws_cloudwatch_query_definition" "trace_application" {
+  count = length(local.all_log_groups) > 0 ? 1 : 0
+
   name            = "${local.name_prefix}/trace-one-application"
   log_group_names = local.all_log_groups
   query_string    = <<-EOT
@@ -133,6 +140,8 @@ resource "aws_cloudwatch_query_definition" "trace_application" {
 }
 
 resource "aws_cloudwatch_query_definition" "errors" {
+  count = length(local.all_log_groups) > 0 ? 1 : 0
+
   name            = "${local.name_prefix}/errors"
   log_group_names = local.all_log_groups
   query_string    = <<-EOT

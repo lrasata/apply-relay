@@ -19,22 +19,22 @@ output "ops_alerts_topic_arn" {
 
 output "api_url" {
   description = "Base URL of the public API. Submit with POST <api_url>/applications."
-  value       = aws_apigatewayv2_stage.default.invoke_url
+  value       = one(aws_apigatewayv2_stage.default[*].invoke_url)
 }
 
 output "applications_table" {
-  value = aws_dynamodb_table.applications.name
+  value = one(aws_dynamodb_table.applications[*].name)
 }
 
 output "cvs_bucket" {
-  value = aws_s3_bucket.cvs.bucket
+  value = one(aws_s3_bucket.cvs[*].bucket)
 }
 
 output "dashboard_url" {
-  value = "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards/dashboard/${aws_cloudwatch_dashboard.pipeline.dashboard_name}"
+  value = length(aws_cloudwatch_dashboard.pipeline) > 0 ? "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards/dashboard/${aws_cloudwatch_dashboard.pipeline[0].dashboard_name}" : null
 }
 
 output "audit_table" {
   description = "Read one application's history: python scripts/trace_application.py <application_id>"
-  value       = aws_dynamodb_table.audit_log.name
+  value       = one(aws_dynamodb_table.audit_log[*].name)
 }

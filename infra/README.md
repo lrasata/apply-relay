@@ -102,16 +102,27 @@ cp backend.hcl.example backend.hcl     # put the bucket and lock_table names fro
 cp example.tfvars dev.tfvars           # put your email in it
 ```
 
-**3. Build, plan, check, apply.**
+**3. Deploy the services one at a time.**
+
+`services` in `dev.tfvars` lists the services to deploy. The example starts with `["application"]`. Apply, check that the service works, then add the next one and apply again:
 
 ```bash
-python ../../../scripts/build_lambda.py cv_parser   # bundles pypdf for the CV parser
 terraform init -backend-config=backend.hcl
-terraform plan -var-file=dev.tfvars    # should say: Plan: 83 to add
+terraform plan -var-file=dev.tfvars
 terraform apply -var-file=dev.tfvars
 ```
 
-**4. Confirm two emails.** AWS sends `alert_email` a "Subscription Confirmation" (for alarms) and an "Email Address Verification Request" (from SES, for recruiter emails). Click both links once.
+| Add to `services` | Before applying | Check with a new test submission |
+|---|---|---|
+| `application` | | `POST <api_url>/applications` returns `201`; an item in `apply-relay-dev-applications`, the CV in the `cvs` bucket |
+| `cv-parser` | `python ../../../scripts/build_lambda.py cv_parser` (bundles pypdf) | an item in `apply-relay-dev-parsed-cvs` |
+| `matching` | | 3 jobs in `apply-relay-dev-jobs`, an item in `apply-relay-dev-matches` |
+| `notification` | | strong matches email `recruiter_email` (after step 4) |
+| `audit` | | one item per event in `apply-relay-dev-audit-log` |
+
+A service's queue is created with the service, so nothing piles up in a queue no one reads; events published before their consumer exists are dropped, which is why each check needs a new submission (a new email or job ID). `cv-parser` requires `application`, since it reads CVs from that service's bucket. The dashboard is created once all five are deployed. With all five (or with `services` removed from `dev.tfvars`, as CI does), the plan says `Plan: 83 to add`.
+
+**4. Confirm two emails.** AWS sends `alert_email` a "Subscription Confirmation" (for alarms) on the first apply, and an "Email Address Verification Request" (from SES, for recruiter emails) when `notification` is added. Click both links once.
 
 ## CI/CD with GitHub Actions
 
@@ -131,7 +142,7 @@ Every Lambda role CI creates must carry the `apply-relay-lambda-boundary` permis
 
 Until the repository variables below exist, the AWS jobs are skipped and CI just runs the tests and checks.
 
-**Set it up (once, after "Deploy it yourself" above):**
+**Set it up (once, after "Deploy it yourself" above, with all five services deployed):** CI doesn't set `services`, so its first deploy creates every service at once.
 
 ```bash
 cd infra/ci

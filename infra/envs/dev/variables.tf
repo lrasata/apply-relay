@@ -49,6 +49,22 @@ variable "api_burst_limit" {
   default     = 10
 }
 
+variable "services" {
+  description = "Services to deploy. Add them one at a time, in order: application, cv-parser, matching, notification, audit. The dashboard is created once all five are deployed."
+  type        = set(string)
+  default     = ["application", "cv-parser", "matching", "notification", "audit"]
+
+  validation {
+    condition     = alltrue([for s in var.services : contains(["application", "cv-parser", "matching", "notification", "audit"], s)])
+    error_message = "services may only contain: application, cv-parser, matching, notification, audit."
+  }
+
+  validation {
+    condition     = !contains(var.services, "cv-parser") || contains(var.services, "application")
+    error_message = "cv-parser reads CVs from the application service's bucket, so deploy application first."
+  }
+}
+
 variable "lambda_permissions_boundary" {
   description = "ARN of the permissions boundary for Lambda roles. Set in CI (from infra/ci); leave null for local applies."
   type        = string

@@ -6,9 +6,12 @@
 
 locals {
   cv_parser_service = "${local.name_prefix}-cv-parser"
+  cv_parser_count   = local.deploy.cv-parser ? 1 : 0
 }
 
 resource "aws_dynamodb_table" "parsed_cvs" {
+  count = local.cv_parser_count
+
   name         = "${local.name_prefix}-parsed-cvs"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "application_id"
@@ -26,6 +29,8 @@ resource "aws_dynamodb_table" "parsed_cvs" {
 # ---------------------------------------------------------------- function
 
 data "archive_file" "cv_parser" {
+  count = local.cv_parser_count
+
   type        = "zip"
   source_dir  = "${path.root}/../../../services/cv_parser/build/package"
   output_path = "${path.root}/build/cv_parser.zip"
@@ -33,24 +38,28 @@ data "archive_file" "cv_parser" {
 }
 
 resource "aws_cloudwatch_log_group" "cv_parser" {
+  count = local.cv_parser_count
+
   name              = "/aws/lambda/${local.cv_parser_service}"
   retention_in_days = 14
 }
 
 resource "aws_lambda_function" "cv_parser" {
+  count = local.cv_parser_count
+
   function_name    = local.cv_parser_service
-  role             = aws_iam_role.cv_parser.arn
+  role             = aws_iam_role.cv_parser[0].arn
   runtime          = "python3.12"
   architectures    = ["arm64"]
   handler          = "cv_parser_service.handler.handler"
-  filename         = data.archive_file.cv_parser.output_path
-  source_code_hash = data.archive_file.cv_parser.output_base64sha256
+  filename         = data.archive_file.cv_parser[0].output_path
+  source_code_hash = data.archive_file.cv_parser[0].output_base64sha256
   memory_size      = 512 # PDF parsing is CPU-bound; more memory also means more CPU
   timeout          = 30  # the queue's 180 s visibility timeout is 6x this, as AWS recommends
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.parsed_cvs.name
+      TABLE_NAME = aws_dynamodb_table.parsed_cvs[0].name
       TOPIC_ARN  = module.topic["cv-parsed"].arn
     }
   }
@@ -63,8 +72,10 @@ resource "aws_lambda_function" "cv_parser" {
 }
 
 resource "aws_lambda_event_source_mapping" "cv_parser" {
+  count = local.cv_parser_count
+
   event_source_arn        = module.queue["cv-parser"].queue_arn
-  function_name           = aws_lambda_function.cv_parser.arn
+  function_name           = aws_lambda_function.cv_parser[0].arn
   batch_size              = 10
   function_response_types = ["ReportBatchItemFailures"] # retry only the messages that failed
 
@@ -76,12 +87,16 @@ resource "aws_lambda_event_source_mapping" "cv_parser" {
 # ---------------------------------------------------------------- permissions (least privilege)
 
 resource "aws_iam_role" "cv_parser" {
+  count = local.cv_parser_count
+
   name                 = local.cv_parser_service
   assume_role_policy   = data.aws_iam_policy_document.lambda_assume.json
   permissions_boundary = var.lambda_permissions_boundary
 }
 
 data "aws_iam_policy_document" "cv_parser" {
+  count = local.cv_parser_count
+
   statement {
     sid       = "ConsumeQueue"
     actions   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
@@ -91,13 +106,13 @@ data "aws_iam_policy_document" "cv_parser" {
   statement {
     sid       = "OwnTable"
     actions   = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:UpdateItem"]
-    resources = [aws_dynamodb_table.parsed_cvs.arn]
+    resources = [aws_dynamodb_table.parsed_cvs[0].arn]
   }
 
   statement {
     sid       = "ReadCvs"
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.cvs.arn}/applications/*"]
+    resources = ["${aws_s3_bucket.cvs[0].arn}/applications/*"]
   }
 
   statement {
@@ -121,7 +136,7 @@ data "aws_iam_policy_document" "cv_parser" {
   statement {
     sid       = "Logs"
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-    resources = ["${aws_cloudwatch_log_group.cv_parser.arn}:*"]
+    resources = ["${aws_cloudwatch_log_group.cv_parser[0].arn}:*"]
   }
 
   statement {
@@ -132,7 +147,9 @@ data "aws_iam_policy_document" "cv_parser" {
 }
 
 resource "aws_iam_role_policy" "cv_parser" {
+  count = local.cv_parser_count
+
   name   = "cv-parser-service"
-  role   = aws_iam_role.cv_parser.id
-  policy = data.aws_iam_policy_document.cv_parser.json
+  role   = aws_iam_role.cv_parser[0].id
+  policy = data.aws_iam_policy_document.cv_parser[0].json
 }
