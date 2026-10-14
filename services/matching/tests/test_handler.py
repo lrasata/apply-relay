@@ -24,6 +24,11 @@ def test_scores_candidate_stores_match_and_publishes(aws, schemas):
     assert envelope["data"]["score"] == 85  # 11 / 13
     assert envelope["data"]["recommendation"] == "strong_match"
     assert envelope["data"]["missing_skills"] == []
+    # Context for the recruiter email: from the job catalogue and the parsed CV.
+    assert envelope["data"]["job_title"] == "DevOps Engineer (AWS)"
+    assert envelope["data"]["job_location"] == "Munich"
+    assert envelope["data"]["years_of_experience"] == 5.0
+    assert envelope["data"]["languages"] == ["english"]
 
     item = aws["matches"].get_item(Key={"application_id": "app_1"})["Item"]
     assert item["event_published"] is True
@@ -38,6 +43,16 @@ def test_weak_match_is_still_published(aws, schemas):
     schemas["candidate-matched"].validate(data)
     assert data["score"] == 0
     assert data["recommendation"] == "weak_match"
+
+
+def test_cv_without_years_of_experience_publishes_null(aws, schemas):
+    incoming = cv_parsed("app_1", STRONG_SKILLS)
+    incoming["data"]["years_of_experience"] = None
+    handler(sqs_event(incoming), None)
+
+    data = aws["published_events"]()[0]["data"]
+    schemas["candidate-matched"].validate(data)
+    assert data["years_of_experience"] is None
 
 
 def test_each_job_uses_its_own_requirements(aws):

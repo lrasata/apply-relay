@@ -68,6 +68,9 @@ resource "aws_lambda_function" "notification" {
       TABLE_NAME      = aws_dynamodb_table.notifications[0].name
       SENDER_EMAIL    = aws_ses_email_identity.recruiter[0].email
       RECRUITER_EMAIL = local.recruiter_email
+      # Only to build console links in the email; the function has no access to either.
+      CVS_BUCKET         = try(aws_s3_bucket.cvs[0].bucket, "")
+      APPLICATIONS_TABLE = try(aws_dynamodb_table.applications[0].name, "")
     }
   }
 

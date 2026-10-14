@@ -16,6 +16,7 @@ import logging
 import os
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from functools import lru_cache
 
 import boto3
@@ -59,6 +60,7 @@ class UnknownJob(Exception):
 
 
 def build_event(item: dict) -> dict:
+    years = item["years_of_experience"]
     return {
         "event_id": item["event_id"],
         "event_type": EVENT_TYPE,
@@ -69,6 +71,10 @@ def build_event(item: dict) -> dict:
         "data": {
             "application_id": item["application_id"],
             "job_id": item["job_id"],
+            "job_title": item["job_title"],
+            "job_location": item["job_location"],
+            "years_of_experience": None if years is None else float(years),
+            "languages": list(item["languages"]),
             "score": int(item["score"]),
             "matched_skills": list(item["matched_skills"]),
             "missing_skills": list(item["missing_skills"]),
@@ -86,6 +92,8 @@ def load_job(job_id: str) -> Job:
         job_id=job_id,
         required_skills=tuple(item.get("required_skills", [])),
         nice_to_have_skills=tuple(item.get("nice_to_have_skills", [])),
+        title=item.get("title", ""),
+        location=item.get("location", ""),
     )
 
 
@@ -102,11 +110,19 @@ def process(envelope: dict) -> str:
     if existing and existing["event_published"]:
         return "duplicate"
 
-    match = score(data["skills"], load_job(data["job_id"]))
+    job = load_job(data["job_id"])
+    match = score(data["skills"], job)
+    years = data.get("years_of_experience")
 
     item = {
         "application_id": application_id,
         "job_id": data["job_id"],
+        # Carried along so the recruiter email can say what the job is and who applied,
+        # without the notification service reading other services' tables.
+        "job_title": job.title,
+        "job_location": job.location,
+        "years_of_experience": None if years is None else Decimal(str(years)),
+        "languages": data.get("languages", []),
         "score": match.score,
         "matched_skills": match.matched_skills,
         "missing_skills": match.missing_skills,

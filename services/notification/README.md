@@ -14,7 +14,19 @@
 
 An application already marked `sent` is skipped, so a duplicate delivery never sends a second email. If the function crashes after sending but before recording `sent`, the retry sends again: email is at-least-once, the safe side for "the recruiter must hear about this".
 
-The email contains the application ID, job, score and matched/missing skills, but no candidate name or email: the event doesn't carry them, and keeping personal data out of inboxes is a feature.
+The email (plain text and HTML) says which job it's about, the score, whether any required skills are missing, the matched skills, experience and languages. It also has links to the CV and the application in the AWS console. It contains no candidate name or email: the event doesn't carry them, and keeping personal data out of inboxes is a feature.
+
+```
+Subject: Strong match 85/100: DevOps Engineer (AWS), Munich
+
+Score:           85/100 (75 or more is a strong match)
+Required skills: Missing 1 required skill: kubernetes
+Matched skills:  aws, terraform, python, docker, github actions
+Experience:      6 years
+Languages:       English, German
+```
+
+The job title, location, experience and languages arrive in `CandidateMatched`: the matching service copies them from its job catalogue and from `CvParsed`. They were added after v1, so older events without them still produce an email.
 
 ## Code
 

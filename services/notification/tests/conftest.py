@@ -56,6 +56,10 @@ def candidate_matched(application_id, recommendation="strong_match", score=85, *
         "data": {
             "application_id": application_id,
             "job_id": "job_devops_munich_042",
+            "job_title": "DevOps Engineer (AWS)",
+            "job_location": "Munich",
+            "years_of_experience": 6.0,
+            "languages": ["english", "german"],
             "score": score,
             "matched_skills": ["aws", "terraform", "python", "docker"],
             "missing_skills": ["kubernetes"],

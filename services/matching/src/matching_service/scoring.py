@@ -21,6 +21,8 @@ class Job:
     job_id: str
     required_skills: tuple[str, ...]
     nice_to_have_skills: tuple[str, ...] = ()
+    title: str = ""
+    location: str = ""
 
 
 @dataclass(frozen=True)

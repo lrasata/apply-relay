@@ -9,6 +9,10 @@
   "properties": {
     "application_id": { "type": "string" },
     "job_id": { "type": "string" },
+    "job_title": { "type": "string", "description": "From the job catalogue. Optional: added after v1 shipped, so older events don't have it." },
+    "job_location": { "type": "string", "description": "From the job catalogue. Optional, like job_title." },
+    "years_of_experience": { "type": ["number", "null"], "description": "Copied from CvParsed; null when the CV doesn't say. Optional, like job_title." },
+    "languages": { "type": "array", "items": { "type": "string" }, "description": "Copied from CvParsed. Optional, like job_title." },
     "score": {
       "type": "integer",
       "minimum": 0,
@@ -28,6 +32,10 @@
     {
       "application_id": "app_5f1d7a0c9e2b",
       "job_id": "job_devops_munich_042",
+      "job_title": "DevOps Engineer (AWS)",
+      "job_location": "Munich",
+      "years_of_experience": 6.0,
+      "languages": ["english", "german"],
       "score": 77,
       "matched_skills": ["aws", "terraform", "python", "docker", "github actions", "aws lambda"],
       "missing_skills": ["kubernetes"],

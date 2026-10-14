@@ -5,20 +5,53 @@ from botocore.exceptions import ClientError
 from conftest import RECRUITER, SENDER, candidate_matched, sqs_event
 from notification_service import handler as handler_module
 from notification_service.handler import handler
-from notification_service.message import build_email
+from notification_service.message import build_email, console_links
+
+
+SUBJECT = "Strong match 85/100: DevOps Engineer (AWS), Munich"
 
 
 def test_email_content():
     email = build_email(candidate_matched("app_1")["data"])
-    assert email.subject == "Strong match (85/100) for job_devops_munich_042"
+    assert email.subject == SUBJECT
     assert "app_1" in email.text
+    assert "Required skills: Missing 1 required skill: kubernetes" in email.text
     assert "Matched skills:  aws, terraform, python, docker" in email.text
-    assert "Missing skills:  kubernetes" in email.text
+    assert "Experience:      6 years" in email.text
+    assert "Languages:       English, German" in email.text
+    assert "DevOps Engineer (AWS), Munich" in email.html
 
 
-def test_email_with_no_missing_skills_says_none():
+def test_email_with_no_missing_skills_says_so():
     data = {**candidate_matched("app_1")["data"], "missing_skills": []}
-    assert "Missing skills:  none" in build_email(data).text
+    assert "Required skills: Has every required skill." in build_email(data).text
+
+
+def test_email_from_an_event_without_the_optional_fields():
+    data = candidate_matched("app_1")["data"]
+    for field in ("job_title", "job_location", "years_of_experience", "languages"):
+        del data[field]
+    email = build_email(data)
+    assert email.subject == "Strong match 85/100: job_devops_munich_042"
+    assert "Experience:      not stated in the CV" in email.text
+    assert "Languages:       none" in email.text
+
+
+def test_email_links_to_the_cv_and_the_application():
+    links = console_links("app_1", "eu-central-1", "apply-relay-dev-cvs-123", "apply-relay-dev-applications")
+    email = build_email(candidate_matched("app_1")["data"], links)
+    assert links.cv == (
+        "https://s3.console.aws.amazon.com/s3/buckets/apply-relay-dev-cvs-123"
+        "?region=eu-central-1&prefix=applications/app_1/"
+    )
+    assert "table=apply-relay-dev-applications" in links.application and "pk=app_1" in links.application
+    assert f"CV:           {links.cv}" in email.text
+    assert "Open the CV" in email.html and "Open the application" in email.html
+
+
+def test_html_escapes_values():
+    data = {**candidate_matched("app_1")["data"], "job_title": "<script>x</script>"}
+    assert "<script>" not in build_email(data).html
 
 
 def test_strong_match_emails_the_recruiter_once_and_logs_it(aws):
@@ -28,7 +61,8 @@ def test_strong_match_emails_the_recruiter_once_and_logs_it(aws):
     assert len(emails) == 1
     assert emails[0].source == SENDER
     assert emails[0].destinations["ToAddresses"] == [RECRUITER]
-    assert emails[0].subject == "Strong match (85/100) for job_devops_munich_042"
+    assert emails[0].subject == SUBJECT
+    assert "Strong match: 85/100" in emails[0].body  # moto keeps the HTML part when there is one
 
     item = aws["table"].get_item(Key={"application_id": "app_1"})["Item"]
     assert item["status"] == "sent"

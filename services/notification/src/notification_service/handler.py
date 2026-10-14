@@ -23,7 +23,7 @@ from functools import lru_cache
 import boto3
 from botocore.exceptions import ClientError
 
-from notification_service.message import build_email
+from notification_service.message import build_email, console_links
 
 SERVICE = "notification-service"
 CONSUMES = ("CandidateMatched", 1)
@@ -82,14 +82,23 @@ def process(envelope: dict) -> str:
             return "duplicate"  # already sent
         raise
 
-    email = build_email(match)
+    links = console_links(
+        application_id,
+        region=os.environ.get("AWS_REGION", ""),
+        cvs_bucket=os.environ.get("CVS_BUCKET", ""),
+        applications_table=os.environ.get("APPLICATIONS_TABLE", ""),
+    )
+    email = build_email(match, links)
     recipient = os.environ["RECRUITER_EMAIL"]
     sent = aws["ses"].send_email(
         Source=os.environ["SENDER_EMAIL"],
         Destination={"ToAddresses": [recipient]},
         Message={
             "Subject": {"Data": email.subject, "Charset": "UTF-8"},
-            "Body": {"Text": {"Data": email.text, "Charset": "UTF-8"}},
+            "Body": {
+                "Text": {"Data": email.text, "Charset": "UTF-8"},
+                "Html": {"Data": email.html, "Charset": "UTF-8"},
+            },
         },
     )
     aws["table"].update_item(
