@@ -44,6 +44,7 @@ Every queue has a dead-letter queue (DLQ): a message that fails 3 times is parke
 | [Matching](services/matching/) | `CvParsed` | `CandidateMatched` | `matches` table, job requirements |
 | [Notification](services/notification/) | `CandidateMatched` | nothing | `notifications` table (sent log) |
 | [Audit](services/audit/) | all three events | nothing | `audit-log` table |
+| [Alerts](services/alerts/) | CloudWatch alarms (SNS `alarms`) | readable emails (SNS `ops-alerts`) | nothing |
 
 Each service owns its own data. No service reads another service's table; everything it needs arrives in an event or is stored by itself.
 
@@ -87,7 +88,7 @@ All events share one [envelope](docs/events/envelope.schema.json):
 
 | Question | Where to look |
 |---|---|
-| Is anything broken right now? | 9 CloudWatch alarms email you: a dead-letter queue got a message, a queue has a backlog older than 15 minutes, or the API returns 5xx |
+| Is anything broken right now? | 10 CloudWatch alarms email you when a dead-letter queue gets a message, a queue has a backlog older than 15 minutes, or the API returns 5xx. The alerts service rewrites each one as "what happened / what to do / links" |
 | How is the pipeline doing? | the `apply-relay-dev-pipeline` CloudWatch dashboard (`terraform output dashboard_url`) |
 | What happened to application `app_...`? | `python scripts/trace_application.py app_...` reads its event history from the audit log |
 | Where did it get slow or fail? | X-Ray: Lambdas and SNS topics have active tracing, so one application is one connected trace across all five services |

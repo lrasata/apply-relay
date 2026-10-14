@@ -1,9 +1,11 @@
 # Step 7: alarms, dashboard and saved log queries.
 #
-# Alarms (all to the ops-alerts topic, i.e. your email), 9 in total so they stay in the free tier:
+# Alarms (to the alarms topic, rewritten into readable emails by alerts.tf), 10 in total so
+# they stay in the free tier:
 #   4x DLQ not empty         a message failed 3 times          (modules/consumer_queue)
 #   4x queue backlog         messages waiting > 15 minutes     (modules/consumer_queue)
 #   1x API 5xx               the public API is failing         (below)
+#   1x alerts errors         the alert formatter itself failed (alerts.tf, straight to ops-alerts)
 #
 # Tracing: every Lambda and SNS topic has X-Ray active tracing, so one application shows up
 # as one connected trace: API -> application -> SNS -> SQS -> cv-parser -> ... -> notification.
@@ -32,8 +34,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.ops_alerts.arn]
-  ok_actions          = [aws_sns_topic.ops_alerts.arn]
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
 }
 
 # ---------------------------------------------------------------- dashboard

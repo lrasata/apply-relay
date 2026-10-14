@@ -62,14 +62,15 @@ module "queue" {
   name_prefix     = local.name_prefix
   service_name    = each.key
   topic_arns      = { for event in each.value : event => module.topic[event].arn }
-  alarm_topic_arn = aws_sns_topic.ops_alerts.arn
+  alarm_topic_arn = aws_sns_topic.alarms.arn # rewritten into a readable email, see alerts.tf
   filter_policies = lookup(local.consumer_filters, each.key, {})
 }
 
 # ---------------------------------------------------------------- alerts
 
-# Where alarms go. Not KMS-encrypted on purpose: CloudWatch can't publish to a topic
-# encrypted with the AWS-managed SNS key (it would need a customer-managed key).
+# Where alert emails go: the alerts function (alerts.tf) publishes readable alarm emails here.
+# Not KMS-encrypted on purpose: CloudWatch can't publish to a topic encrypted with the
+# AWS-managed SNS key (it would need a customer-managed key), and one alarm still does.
 resource "aws_sns_topic" "ops_alerts" {
   name = "${local.name_prefix}-ops-alerts"
 }

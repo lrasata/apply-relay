@@ -73,7 +73,7 @@ To add or change a job, edit `jobs.json` and apply; Terraform updates the table 
 |---|---|
 | Notification | `apply-relay-dev-notification` Lambda, `apply-relay-dev-notifications` table (sent log), an SES email identity. The queue's SNS subscription has a filter policy, so only `strong_match` events reach it |
 | Audit | `apply-relay-dev-audit` Lambda (append-only: it can `PutItem` and nothing else), `apply-relay-dev-audit-log` table keyed by application and time, with a TTL (365 days by default, `audit_retention_days`) |
-| Alarms | a backlog alarm per queue (oldest message > 15 min) and an API 5xx alarm, on top of the 4 DLQ alarms: 9 in total, inside the 10 free alarms |
+| Alarms | a backlog alarm per queue (oldest message > 15 min) and an API 5xx alarm, on top of the 4 DLQ alarms |
 | Dashboard | `apply-relay-dev-pipeline`: API traffic, events published, Lambda errors and p95 duration, queue and DLQ depth |
 | Queries | saved Logs Insights queries `apply-relay-dev/trace-one-application` and `apply-relay-dev/errors` |
 | Tracing | X-Ray active tracing on the three SNS topics (all Lambdas already had it) |
@@ -82,9 +82,21 @@ Strong-match emails go to `recruiter_email` (defaults to `alert_email`) and are 
 
 **Expected cost:** effectively $0 while idle. SNS, SQS, Lambda and DynamoDB on-demand are within the free tier at portfolio traffic, API Gateway HTTP APIs cost about $1 per million requests, the first 10 CloudWatch alarms and the first 2 budgets are free, and the state bucket holds a few KB.
 
+## Readable alert emails (8 resources)
+
+CloudWatch's own alarm email is a fixed format: mostly metric settings, nothing about what to do. So alarms don't email you directly:
+
+```
+CloudWatch alarm -> SNS apply-relay-dev-alarms -> Lambda apply-relay-dev-alerts -> SNS apply-relay-dev-ops-alerts -> your email
+```
+
+The [alerts function](../services/alerts/) rewrites each alarm as "what happened / what to do / links", with the exact command to run and console links to the queue, logs and dashboard. It isn't one of the `services`: alarms exist from the first apply, so it does too. A message it can't parse is forwarded as is, and a 10th alarm (still inside the 10 free ones) watches the function itself and emails you in CloudWatch's own format if it fails.
+
 ## Deploy it yourself
 
 Prerequisites: Terraform >= 1.10, AWS CLI v2, and credentials for your account (`aws sts get-caller-identity` should work). Default region is `eu-central-1` (Frankfurt).
+
+The commands below are for bash. In PowerShell, quote any argument that has a dot after `=`, e.g. `terraform init "-backend-config=backend.hcl"` and `terraform plan "-var-file=dev.tfvars"`. Unquoted, PowerShell splits it at the dot and Terraform fails with "Too many command line arguments".
 
 **1. Create the state bucket and lock table (once).**
 
@@ -120,7 +132,7 @@ terraform apply -var-file=dev.tfvars
 | `notification` | | strong matches email `recruiter_email` (after step 4) |
 | `audit` | | one item per event in `apply-relay-dev-audit-log` |
 
-A service's queue is created with the service, so nothing piles up in a queue no one reads; events published before their consumer exists are dropped, which is why each check needs a new submission (a new email or job ID). `cv-parser` requires `application`, since it reads CVs from that service's bucket. The dashboard is created once all five are deployed. With all five (or with `services` removed from `dev.tfvars`, as CI does), the plan says `Plan: 83 to add`.
+A service's queue is created with the service, so nothing piles up in a queue no one reads; events published before their consumer exists are dropped, which is why each check needs a new submission (a new email or job ID). `cv-parser` requires `application`, since it reads CVs from that service's bucket. The dashboard is created once all five are deployed. With all five (or with `services` removed from `dev.tfvars`, as CI does), the plan says `Plan: 91 to add`.
 
 **4. Confirm two emails.** AWS sends `alert_email` a "Subscription Confirmation" (for alarms) on the first apply, and an "Email Address Verification Request" (from SES, for recruiter emails) when `notification` is added. Click both links once.
 

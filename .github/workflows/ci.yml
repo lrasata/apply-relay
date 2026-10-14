@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [application, cv_parser, matching, notification, audit]
+        service: [application, cv_parser, matching, notification, audit, alerts]
     steps:
       - uses: actions/checkout@v5
 
