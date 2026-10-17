@@ -74,9 +74,16 @@ data "aws_iam_policy_document" "state" {
   }
 
   statement {
-    sid       = "ReadWriteStateAndLocks"
+    sid       = "ReadWriteState"
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = ["arn:aws:s3:::${local.prefix}-tfstate-*/*"]
+  }
+
+  # Even a plan takes the lock, so the read-only plan role needs to write it too.
+  statement {
+    sid       = "StateLock"
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:DescribeTable"]
+    resources = ["arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-tfstate-*-locks"]
   }
 }
 
