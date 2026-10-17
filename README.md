@@ -4,34 +4,25 @@ An event-driven job application pipeline on AWS, built from five small services 
 
 When a candidate applies for a job, several things have to happen: read the CV, score the candidate against the job, tell the recruiter and keep an audit trail. If one big service did all of that, a slow CV parser would block everything and a double-clicked "Apply" button would create duplicate applications. Here, each step is its own service, reacts to an event, retries on its own, and can fail without taking the others down.
 
+## Why I built this
+
+I wanted to practise building an event-driven system on AWS end to end, the way it happens on a real project: start from an idea, write down the requirements, make the technical decisions and record why, then build not only the application code but also the infrastructure underneath it, as Terraform, deployed to AWS by a CI/CD pipeline. I built it working with Claude (Claude Code) as a pair-programming partner.
+
+## Why event-driven
+
+I've worked on backends where services talk to each other with plain HTTP request/response. That works well for asking a question and waiting for the answer. It gets painful when one service has to tell several others that something happened: the caller has to know every receiver, waits for each one, and has to handle retries itself when one of them is down.
+
+Events aren't the only way to connect microservices, but for a workflow like this one they scale and cope with failure better:
+
+* The producer publishes an event and moves on. It doesn't know or care who listens.
+* Each consumer has its own queue, so a slow or broken service doesn't hold up the others, and its messages wait for it instead of being lost.
+* Adding a consumer is a new subscription, not a change to the producer. The audit service was added this way.
+
+It has a price: the system is eventually consistent, a message can arrive twice, and following one request across services is harder. Most of [Reliability](#reliability) and [Observability](#observability) below exists to deal with exactly that.
+
 ## Architecture
+![architecture](docs/job-application-events-columns.png)
 
-```mermaid
-flowchart LR
-    C([Candidate]) -->|POST /applications| API[API Gateway]
-    API --> APP[Application service<br/>Lambda]
-    APP -->|CV file| S3[(S3<br/>cvs)]
-    APP -->|conditional write| DB1[(DynamoDB<br/>applications)]
-    APP -->|ApplicationSubmitted| T1{{SNS<br/>application-submitted}}
-
-    T1 --> Q1[SQS cv-parser] --> CVP[CV parser service<br/>Lambda]
-    CVP -->|reads CV| S3
-    CVP --> DB2[(DynamoDB<br/>parsed-cvs)]
-    CVP -->|CvParsed| T2{{SNS<br/>cv-parsed}}
-
-    T2 --> Q2[SQS matching] --> MAT[Matching service<br/>Lambda]
-    MAT --> DB3[(DynamoDB<br/>matches)]
-    MAT -->|CandidateMatched| T3{{SNS<br/>candidate-matched}}
-
-    T3 --> Q3[SQS notification] --> NOT[Notification service<br/>Lambda] -->|email| R([Recruiter])
-
-    T1 & T2 & T3 --> Q4[SQS audit] --> AUD[Audit service<br/>Lambda] --> DB4[(DynamoDB<br/>audit-log)]
-
-    Q1 -.-> DLQ1[DLQ]
-    Q2 -.-> DLQ2[DLQ]
-    Q3 -.-> DLQ3[DLQ]
-    Q4 -.-> DLQ4[DLQ]
-```
 
 Every queue has a dead-letter queue (DLQ): a message that fails 3 times is parked there and raises a CloudWatch alarm instead of retrying forever.
 
@@ -94,24 +85,23 @@ All events share one [envelope](docs/events/envelope.schema.json):
 | Where did it get slow or fail? | X-Ray: Lambdas and SNS topics have active tracing, so one application is one connected trace across all five services |
 | What did the services log about it? | the saved Logs Insights query `apply-relay-dev/trace-one-application`; every log line is JSON with `correlation_id` |
 
-## Design decisions
-
-* [0001: Lambda instead of ECS Fargate](docs/decisions/0001-lambda-over-fargate.md)
-* [0002: SNS + SQS fan-out instead of EventBridge or RabbitMQ](docs/decisions/0002-sns-sqs-fanout.md)
-
 ## Tech stack
 
 Python 3.12 · AWS Lambda · API Gateway · SNS · SQS · DynamoDB · S3 · SES · CloudWatch · X-Ray · Terraform · GitHub Actions (OIDC, no stored AWS keys)
 
-## Roadmap
+The stack is 100% serverless: no servers to patch, capacity follows traffic automatically (including bursts, like a wave of applications right after a job is posted), and it costs close to nothing while idle.
 
-- [x] 1. Repo skeleton, event contracts, architecture
-- [x] 2. Shared infrastructure in Terraform (topics, queues, DLQs, budget alarm)
-- [x] 3. Application service
-- [x] 4. CV parser service
-- [x] 5. Matching service
-- [x] 6. CI/CD with GitHub Actions
-- [x] 7. Notification and audit services, tracing and alarms
+### Why Lambda instead of ECS Fargate
+
+Each service does a few seconds of work per message, and traffic comes in bursts with long quiet periods in between. Lambda fits that: it runs only when there's a message, and its SQS integration takes care of polling, batching, retries and partial batch failures. Fargate tasks would run (and bill) around the clock, and each service would need its own polling loop and autoscaling.
+
+The trade-offs are cold starts and the 15-minute limit per run. Neither matters here, and because services only share events, any one of them could move to Fargate later without touching the others. More in [ADR 0001](docs/decisions/0001-lambda-over-fargate.md).
+
+### Why SNS + SQS fan-out
+
+In this workflow, one event usually has several independent consumers. `ApplicationSubmitted` goes to the CV parser and the audit log. `CandidateMatched` goes to the audit log and, for strong matches only, to the notification service. SNS does the fan-out, and the filtering through a subscription filter policy. An SQS queue per consumer gives each service its own buffer, retries and dead-letter queue.
+
+EventBridge would also work, but would still need SQS behind it for buffering. Amazon MQ (RabbitMQ) means a broker that runs, bills and needs patching all the time. Lambdas calling each other directly would bring back exactly the coupling I wanted to avoid. More in [ADR 0002](docs/decisions/0002-sns-sqs-fanout.md).
 
 ## Project layout
 
