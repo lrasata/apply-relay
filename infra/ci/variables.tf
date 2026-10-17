@@ -25,3 +25,19 @@ variable "create_oidc_provider" {
   type        = bool
   default     = true
 }
+
+variable "github_subject_prefix" {
+  description = <<-EOT
+    Start of the OIDC "sub" claim GitHub sends for this repository. Leave null for the classic
+    "repo:owner/name". Repositories using GitHub's immutable subject send
+    "repo:owner@<owner-id>/name@<repo-id>" instead; read yours with
+    GET https://api.github.com/repos/<owner>/<name>/actions/oidc/customization/sub (sub_claim_prefix).
+  EOT
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.github_subject_prefix == null || startswith(coalesce(var.github_subject_prefix, "x"), "repo:")
+    error_message = "github_subject_prefix must start with \"repo:\"."
+  }
+}

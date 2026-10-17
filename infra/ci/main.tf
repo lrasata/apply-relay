@@ -11,7 +11,7 @@ locals {
   prefix       = "apply-relay"
   account_id   = data.aws_caller_identity.current.account_id
   github_oidc  = "token.actions.githubusercontent.com"
-  repo_subject = "repo:${var.github_repository}"
+  repo_subject = coalesce(var.github_subject_prefix, "repo:${var.github_repository}")
 }
 
 data "aws_caller_identity" "current" {}

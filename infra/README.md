@@ -165,6 +165,8 @@ terraform apply -var-file=ci.tfvars               # 7 resources
 
 If your account already has a GitHub OIDC provider, add `create_oidc_provider = false` to `ci.tfvars`.
 
+If the deploy fails with `Not authorized to perform sts:AssumeRoleWithWebIdentity`, your repository probably uses GitHub's *immutable* OIDC subject: the token's `sub` is `repo:owner@<owner-id>/name@<repo-id>:...` instead of `repo:owner/name:...`. Read the prefix from `https://api.github.com/repos/<owner>/<name>/actions/oidc/customization/sub` (`sub_claim_prefix`), set it as `github_subject_prefix` in `ci.tfvars` and apply again.
+
 Then in GitHub, under *Settings → Secrets and variables → Actions → Variables*, add:
 
 | Variable | Value |
