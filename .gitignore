@@ -25,4 +25,7 @@ services/*/build/
 # IDE
 *.iml
 .idea/
-.claude/
+
+# Claude Code: settings.json and skills/ are shared; these are personal
+.claude/settings.local.json
+.claude/worktrees/

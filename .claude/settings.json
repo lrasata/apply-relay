@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest *)",
+      "Bash(python -m pytest *)",
+      "Bash(python scripts/build_lambda.py *)",
+      "Bash(terraform fmt *)",
+      "Bash(terraform validate *)",
+      "Bash(terraform -chdir=* validate *)",
+      "Bash(terraform plan *)",
+      "Bash(terraform -chdir=* plan *)",
+      "Bash(terraform output *)",
+      "Bash(terraform state list *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "PowerShell(pytest *)",
+      "PowerShell(python -m pytest *)",
+      "PowerShell(terraform fmt *)",
+      "PowerShell(terraform validate *)",
+      "PowerShell(terraform plan *)",
+      "PowerShell(terraform output *)"
+    ],
+    "deny": [
+      "Bash(terraform apply *)",
+      "Bash(terraform -chdir=* apply *)",
+      "Bash(terraform destroy *)",
+      "Bash(terraform -chdir=* destroy *)",
+      "Bash(terraform state rm *)",
+      "Bash(terraform force-unlock *)",
+      "PowerShell(terraform apply *)",
+      "PowerShell(terraform destroy *)",
+      "PowerShell(terraform state rm *)",
+      "PowerShell(terraform force-unlock *)",
+      "Read(**/dev.tfvars)",
+      "Read(**/ci.tfvars)",
+      "Read(**/backend.hcl)",
+      "Read(**/.env)",
+      "Read(**/*.tfstate)"
+    ]
+  }
+}
